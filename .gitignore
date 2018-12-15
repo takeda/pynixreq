@@ -1,0 +1,8 @@
+/.eggs/
+/.idea/
+/.mypy_cache/
+/build/
+/dist/
+/py37/
+/*.egg-info/
+__pycache__/
