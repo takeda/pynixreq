@@ -7,6 +7,8 @@ let
 		# project path, usually ./.
 		src,
 
+		checkInputs ? [],
+
 		buildInputs ? [],
 
 		propagatedBuildInputs ? [],
@@ -64,8 +66,11 @@ let
 				(type == "regular" && hasSuffix ".pyc" baseName) ||
 				(type == "directory" && baseName == "__pycache__") ||
 				(type == "directory" && parent == srcDir && hasSuffix ".egg-info" baseName) ||
+				(type == "directory" && parent == srcDir && baseName == ".DS_Store") ||
 				(type == "directory" && parent == srcDir && baseName == ".eggs") ||
 				(type == "directory" && parent == srcDir && baseName == ".idea") ||
+				(type == "directory" && parent == srcDir && baseName == ".mypy_cache") ||
+				(type == "directory" && parent == srcDir && baseName == "venv") ||
 				(type == "directory" && parent == srcDir && toLower baseName == "build") ||
 				(type == "directory" && parent == srcDir && toLower baseName == "dist")));
 			inherit src;
@@ -77,8 +82,8 @@ let
 			version = package_metadata.metadata.version;
 			src = if pkgs.lib.isStorePath (toPath src) then src else clean_python_source src;
 
-#			checkInputs = checkInputs ++ pkgs.lib.attrVals package_metadata.requirement_names.test packages;
-#			buildInputs = buildInputs ++ pkgs.lib.attrVals package_metadata.requirement_names.setup packages;
+			checkInputs = checkInputs ++ pkgs.lib.attrVals package_metadata.requirements.test packages;
+			buildInputs = buildInputs ++ pkgs.lib.attrVals package_metadata.requirements.setup packages;
 			propagatedBuildInputs = propagatedBuildInputs ++ pkgs.lib.attrVals package_metadata.requirements.install packages;
 
 			inherit doCheck;

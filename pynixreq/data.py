@@ -30,10 +30,9 @@ class TargetDetails:
 @dataclass(frozen=True)
 class RequirementWrapper:
 	"""Individual requirement as specified in setup.py/setup.cfg/requirements.txt"""
-	# req_text: InitVar[Text] = None
-	name: Text = field(default=None)
-	url: Text = field(default=None)
-	extras: FrozenSet[Text] = field(default=None)
+	name: Optional[Text] = field(default=None)
+	url: Optional[Text] = field(default=None)
+	extras: Optional[FrozenSet[Text]] = field(default=None)
 	specifier: SpecifierSet = field(default=None)
 	marker: Optional[Marker] = field(default=None)
 	key: Text = field(init=False)
@@ -86,7 +85,7 @@ class PackageTuple:
 class Dependency:
 	"""individual dependency"""
 	name: Text
-	specifiers: Dict[name, Tuple[Version, SpecifierSet]]
+	specifiers: Dict[Text, Tuple[Version, SpecifierSet]]
 	requested_by: Set[Text] = field(default_factory=set, compare=False)
 	candidates: Dict[Version, Candidate] = field(default=None, compare=False)
 	chosen_version: Version = None
