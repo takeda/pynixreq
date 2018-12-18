@@ -9,6 +9,8 @@ from . import nix
 from .data import Candidate, CandidateInfo, Dependency, DependencyMode, PackageTuple, RequirementWrapper, TargetDetails
 from .pypi import PyPI
 
+BLOCKED_HASHES = ['md5']
+
 log = getLogger(__name__)
 
 
@@ -112,6 +114,11 @@ class DependencySolver:
 			log.debug('Processing requirement: %s', requirement.name)
 			async for candidate in self._pick_package_version(requirement):
 				log.debug('Picked version: %s', candidate.version)
+				if candidate.hash_type in BLOCKED_HASHES:
+					log.info('Candidate %s %s has blacklisted hash: %s; calculating a new one ...', candidate.name, candidate.version, candidate.hash_type)
+					hash_type, hash, _ = await nix.nix_hash(candidate)
+					candidate.update_hash(hash_type, hash)
+
 				candidate_info = await nix.get_package_dependencies(self.target.python_version, candidate)
 				dependencies = self._get_dependencies(requirement, candidate_info)
 

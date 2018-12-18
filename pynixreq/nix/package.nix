@@ -3,6 +3,7 @@
     python_version,
     src ? null,
     name ? null,
+    nativeBuildInputs ? [],
     buildInputs ? []
 }:
 
@@ -16,7 +17,7 @@ let
         if name == null || src == null
         then abort "name and src arguments are required"
         else pkgs.runCommand "${name}-setup.py-metadata" {
-            inherit src buildInputs nix_mode;
+            inherit src buildInputs nativeBuildInputs nix_mode;
         } "${bare_python.interpreter} ${./package.py}";
 in {
     environment = get_environment;

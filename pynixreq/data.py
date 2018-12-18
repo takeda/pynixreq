@@ -42,21 +42,8 @@ class RequirementWrapper:
 	def from_requirement(cls, req_text: Text) -> RequirementWrapper:
 		req = Requirement(req_text)
 		return RequirementWrapper(req.name, req.url, frozenset(req.extras), req.specifier, req.marker)
-		# object.__setattr__(self, 'name', req.name)
-		# object.__setattr__(self, 'url', req.url)
-		# object.__setattr__(self, 'extras', frozenset(req.extras))
-		# object.__setattr__(self, 'specifier', req.specifier)
-		# object.__setattr__(self, 'marker', req.marker)
 
 	def __post_init__(self) -> None:
-		# if req_text:
-		# 	req = Requirement(req_text)
-		# 	object.__setattr__(self, 'name', req.name)
-		# 	object.__setattr__(self, 'url', req.url)
-		# 	object.__setattr__(self, 'extras', frozenset(req.extras))
-		# 	object.__setattr__(self, 'specifier', req.specifier)
-		# 	object.__setattr__(self, 'marker', req.marker)
-		#	# object.__setattr__(self, 'requirement', req)
 		object.__setattr__(self, 'key', re.sub(r'[^A-Za-z0-9.]+', '-', self.name).lower())
 
 	def __and__(self, other):
@@ -141,15 +128,23 @@ class Candidate:
 
 	def to_nix(self):
 		return [
-			f'"{self.name}" = buildPythonPackage {{',
-			f'\tpname = "{self.name}";',
-			f'\tversion = "{self.version}";',
+			f'"{self.name}" = setup {{',
+			# f'\tpname = "{self.name}";',
+			# f'\tversion = "{self.version}";',
 			'\tsrc = fetchurl {',
 			f'\t\turl = "{self.url}";',
 			f'\t\t{self.hash_type} = "{self.hash}";',
 			'\t};',
+			'\tnixpkgs = args.nixpkgs;',
+			'\tpython = args.python;',
+			'\tdoCheck = false;',
+			'\toverride_packages = self;',
 			'};'
 		]
+
+	def update_hash(self, hash_type: str, hash: str) -> None:
+		self.hash_type = hash_type
+		self.hash = hash
 
 	def _is_comparable(self, other):
 		return isinstance(other, type(self)) and self.name == other.name

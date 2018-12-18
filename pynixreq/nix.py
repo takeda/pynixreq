@@ -2,13 +2,33 @@ from __future__ import annotations
 
 import asyncio.subprocess
 import json
-from typing import Text, Dict
+from typing import Text, Dict, Tuple
 
 from packaging.requirements import Requirement
 from pkg_resources import resource_filename
 
 from .data import Candidate, CandidateInfo, RequirementWrapper
 
+
+async def nix_hash(candidate: Candidate) -> Tuple[str, str, str]:
+	proc = await asyncio.create_subprocess_exec('nix-prefetch-url', '--print-path',
+		'--type', candidate.hash_type, candidate.url, candidate.hash,
+		stdout=asyncio.subprocess.PIPE)
+
+	stdout = await proc.stdout.read()
+	await proc.wait()
+
+	output = stdout.splitlines()
+	assert output[0].decode() == candidate.hash
+	nix_path = output[1].decode()
+
+	proc = await asyncio.create_subprocess_exec('nix-hash', '--flat', '--base32',
+		'--type', 'sha512', nix_path, stdout=asyncio.subprocess.PIPE)
+	stdout = await proc.stdout.read()
+	await proc.wait()
+
+	output = stdout.splitlines()
+	return 'sha512', output[0].decode(), nix_path
 
 async def prefetch(candidate: Candidate) -> Text:
 	proc = await asyncio.create_subprocess_exec('nix-prefetch-url', '--print-path',
@@ -22,7 +42,7 @@ async def prefetch(candidate: Candidate) -> Text:
 	return output[1].decode()
 
 
-async def get_hash(nix_path: Text) -> Text:
+async def get_hash(nix_path: Text) -> Tuple[Text, Text]:
 	proc = await asyncio.create_subprocess_exec('nix-hash', '--flat', '--base32', '--type',
 		'sha512', nix_path, stdout=asyncio.subprocess.PIPE)
 
@@ -30,7 +50,7 @@ async def get_hash(nix_path: Text) -> Text:
 	await proc.wait()
 
 	output = stdout.splitlines()
-	return output[0].decode()
+	return 'sha512', output[0].decode()
 
 
 async def get_environment(python_version: Text) -> Dict[Text, Text]:
