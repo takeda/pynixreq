@@ -1,11 +1,13 @@
 let
 	setup = args@{
-		nixpkgs ? import <nixpkgs>,
+		nixpkgs ? <nixpkgs>,
 
 		python, # python27, python36 etc
 
 		# project path, usually ./.
 		src,
+
+		application ? false,
 
 		checkInputs ? [],
 
@@ -21,8 +23,9 @@ let
 	with builtins;
 
 	let
-		pkgs = nixpkgs {};
+		pkgs = import nixpkgs {};
 		pythonPackages = pkgs.${python}.pkgs;
+		buildPython = if application then pythonPackages.buildPythonApplication else pythonPackages.buildPythonPackage;
 
 		# Import requirements
 		requirements = let
@@ -77,7 +80,7 @@ let
 		};
 		clean_python_source = src: pkgs.lib.cleanSource (filter_python_files src);
 
-	in pythonPackages.buildPythonPackage {
+	in buildPython {
 			pname = package_metadata.metadata.name;
 			version = package_metadata.metadata.version;
 			src = if pkgs.lib.isStorePath (toPath src) then src else clean_python_source src;
