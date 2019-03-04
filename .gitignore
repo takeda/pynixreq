@@ -3,6 +3,6 @@
 /.mypy_cache/
 /build/
 /dist/
-/py37/
+/venv/
 /*.egg-info/
 __pycache__/

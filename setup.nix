@@ -1,6 +1,6 @@
 let
 	setup = args@{
-		nixpkgs ? <nixpkgs>,
+		nixpkgs ? import <nixpkgs> {},
 
 		python, # python27, python36 etc
 
@@ -24,7 +24,7 @@ let
 
 	let
 		pkgs = import nixpkgs {};
-		pythonPackages = pkgs.${python}.pkgs;
+		pythonPackages = nixpkgs.${python}.pkgs;
 		buildPython = if application then pythonPackages.buildPythonApplication else pythonPackages.buildPythonPackage;
 
 		# Import requirements
@@ -32,7 +32,7 @@ let
 			requirements_path = src + "/requirements.nix";
 		in if pathExists requirements_path then import requirements_path {
 			inherit setup args;
-			inherit (pkgs) fetchurl;
+			inherit (nixpkgs) fetchurl;
 			inherit (pythonPackages) buildPythonPackage;
 		} else self: {};
 
@@ -40,31 +40,31 @@ let
 		requirements_override = let
 			requirements_path = src + "/requirements_override.nix";
 		in if pathExists requirements_path then import requirements_path {
-			inherit pkgs;
+			inherit nixpkgs;
 		} else self: super: {};
 
 		packages = if isNull override_packages then
-			pkgs.lib.fix (pkgs.lib.extends requirements_override requirements)
+			nixpkgs.lib.fix (nixpkgs.lib.extends requirements_override requirements)
 		else
 			override_packages;
 
 		# Obtain metadata for the current package
-		package_metadata = pkgs.lib.importJSON((import ./pynixreq/nix/package.nix {
+		package_metadata = nixpkgs.lib.importJSON((import ./pynixreq/nix/package.nix {
 			python_version = python;
 			name = (baseNameOf (if isAttrs src then src.name else src));
-#			buildInputs = [packages.setuptools_scm pkgs.git]; # TODO: automatically detect it
-			nativeBuildInputs = [pkgs.git];
+#			buildInputs = [packages.setuptools_scm nixpkgs.git]; # TODO: automatically detect it
+			nativeBuildInputs = [nixpkgs.git];
 			buildInputs = [pythonPackages.setuptools_scm]; # TODO: automatically detect it
-			inherit pkgs src;
+			inherit nixpkgs src;
 		}).dependencies);
 
 #		packages = if isNull override_packages then
-#			(pkgs.lib.fix
-#			(pkgs.lib.extends overrides
-#			(pkgs.lib.extends req_derivations
+#			(nixpkgs.lib.fix
+#			(nixpkgs.lib.extends overrides
+#			(nixpkgs.lib.extends req_derivations
 #			pythonPackages.__unfix__))) else override_packages;
 
-		filter_python_files = with pkgs.lib; src: cleanSourceWith {
+		filter_python_files = with nixpkgs.lib; src: cleanSourceWith {
 			filter = (name: type: let baseName = baseNameOf (toString name); parent = dirOf name; srcDir = toString src; in ! (
 				(type == "regular" && hasSuffix ".pyc" baseName) ||
 				(type == "directory" && baseName == "__pycache__") ||
@@ -78,16 +78,20 @@ let
 				(type == "directory" && parent == srcDir && toLower baseName == "dist")));
 			inherit src;
 		};
-		clean_python_source = src: pkgs.lib.cleanSource (filter_python_files src);
+		clean_python_source = src: nixpkgs.lib.cleanSource (filter_python_files src);
 
 	in buildPython {
 			pname = package_metadata.metadata.name;
 			version = package_metadata.metadata.version;
-			src = if pkgs.lib.isStorePath (toPath src) then src else clean_python_source src;
+			src = if nixpkgs.lib.isStorePath (toPath src) then src else clean_python_source src;
 
-			checkInputs = checkInputs ++ pkgs.lib.attrVals package_metadata.requirements.test packages;
-			buildInputs = buildInputs ++ pkgs.lib.attrVals package_metadata.requirements.setup packages;
-			propagatedBuildInputs = propagatedBuildInputs ++ pkgs.lib.attrVals package_metadata.requirements.install packages;
+			checkInputs = checkInputs ++ nixpkgs.lib.attrVals package_metadata.requirements.test packages;
+			buildInputs = buildInputs ++ nixpkgs.lib.attrVals package_metadata.requirements.setup packages;
+			propagatedBuildInputs = propagatedBuildInputs ++ nixpkgs.lib.attrVals package_metadata.requirements.install packages;
+
+			passthru = {
+				python = nixpkgs.${python};
+			};
 
 			inherit doCheck;
 #			inherit postInstall;

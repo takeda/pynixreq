@@ -30,6 +30,7 @@ async def nix_hash(candidate: Candidate) -> Tuple[str, str, str]:
 	output = stdout.splitlines()
 	return 'sha512', output[0].decode(), nix_path
 
+
 async def prefetch(candidate: Candidate) -> Text:
 	proc = await asyncio.create_subprocess_exec('nix-prefetch-url', '--print-path',
 		'--type', candidate.hash_type, candidate.url, candidate.hash,
