@@ -78,7 +78,26 @@ def extract_source(src):
 			dirs = set(map(lambda x: x.split('/', 1)[0], tar_fp.getnames()))
 			if len(dirs) != 1:
 				raise RuntimeError('Expected a single directory, got: %s' % dirs)
-			tar_fp.extractall(tmp)
+def is_within_directory(directory, target):
+	
+	abs_directory = os.path.abspath(directory)
+	abs_target = os.path.abspath(target)
+
+	prefix = os.path.commonprefix([abs_directory, abs_target])
+	
+	return prefix == abs_directory
+
+def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+
+	for member in tar.getmembers():
+		member_path = os.path.join(path, member.name)
+		if not is_within_directory(path, member_path):
+			raise Exception("Attempted Path Traversal in Tar File")
+
+	tar.extractall(path, members, numeric_owner=numeric_owner) 
+	
+
+safe_extract(tar_fp, tmp)
 			dest = os.path.join(tmp, dirs.pop())
 	elif zipfile.is_zipfile(src):
 		print('Extracting zip source to %s ...' % tmp)
